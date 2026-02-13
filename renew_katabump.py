@@ -100,7 +100,7 @@ class KatabumpAutoRenew:
         chrome_options.add_argument('--disable-blink-features=AutomationControlled')
         if PROXY_SERVER:
             chrome_options.add_argument(f'--proxy-server={PROXY_SERVER}')
-        v_env = os.getenv('CHROME_VERSION')
+        v_env = os.getenv('CHROME_VERSION', '')
         v_main = int(v_env) if v_env.isdigit() else None
         logger.info(f"🛠️ 驱动初始化 - 指定大版本: {v_main or '自动探测'}")
         try:
@@ -136,7 +136,6 @@ class KatabumpAutoRenew:
         manage_btn = WebDriverWait(self.driver, 30).until(
             EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'See')]"))
         )
-        logger.info(f"⚙️ {self.masked_user} - 点击 See ...")
         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", manage_btn)
         sleep(1000 + random.random() * 1000)
         self.driver.execute_script("arguments[0].click();", manage_btn)
@@ -208,14 +207,20 @@ class KatabumpAutoRenew:
 
         # 结果核验
         try:
+            alerts = self.driver.find_elements(By.CSS_SELECTOR, ".alert-danger")
+            if alerts and alerts[0].is_displayed():
+                alertmsg = alerts[0].text.strip().replace('×', '')
+                logger.warning(f"⚠️ {self.masked_user} - 续期失败: {alertmsg}")
+                return False, f"⏳ {self.masked_user}\n⚠️ 续期失败: {alertmsg}"
+            
             final_expiry_element = self.driver.find_element(By.XPATH, "//div[contains(text(), 'Expiry')]/following-sibling::div")
             final_expiry = final_expiry_element.text.strip()
             logger.info(f"✅ {self.masked_user} - 续期后到期时间: {final_expiry}")
 
             if final_expiry != initial_expiry and len(final_expiry) > 0:
-                return True, f"✅ {self.masked_user}\n🎉 续期成功： {final_expiry}"
+                return True, f"✅ {self.masked_user}\n🎉 续期成功: {final_expiry}"
             else:
-                return False, f"❌ {self.masked_user}\n⚠️ 时间未更新 ({initial_expiry})"
+                return False, f"⚠️ {self.masked_user}\n⚠️ 时间未更新 ({initial_expiry})"
         except Exception as e:
             return False, f"❌ {self.masked_user}\n⚠️ 验证结果出错: {e}"
 

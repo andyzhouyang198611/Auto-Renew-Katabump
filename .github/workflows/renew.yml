@@ -50,7 +50,5 @@ jobs:
         env:
           DISPLAY: ':99'
           HEADLESS: 'false'
-          CHROME_VERSION: ${{ env.CHROME_VERSION }}
         run: |
-          rm -rf /home/runner/.local/share/undetected_chromedriver
           python renew_katabump.py
