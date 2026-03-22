@@ -15,6 +15,16 @@ jobs:
       CHAT_ID: ${{ secrets.CHAT_ID }}
 
     steps:
+    # =======================================================
+    # 替换后的代码块：拉取私有仓库
+      - name: 拉取私有仓库
+        uses: actions/checkout@v4
+        with:
+          repository: andyzhouyang198611/katabump
+          token: ${{ secrets.REPO_TOKEN }}
+          path: .  # 拉到根目录
+    # =======================================================
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
