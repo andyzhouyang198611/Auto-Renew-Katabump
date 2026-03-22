@@ -25,9 +25,6 @@ jobs:
           path: .  # 拉到根目录
     # =======================================================
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
