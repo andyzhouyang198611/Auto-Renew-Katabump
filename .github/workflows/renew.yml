@@ -1,61 +1,50 @@
-name: Auto Renew Katabump
+name: Katabump Auto Renew
 
-on:  
+on:
   schedule:
-    - cron: '17 1 2-30/2 * *'  # 每2天运行一次
-  workflow_dispatch:  # 允许手动触发
+    - cron: '17 1 2-30/2 * *'
+  workflow_dispatch: # 允许手动触发
 
 jobs:
-  auto_renew_katabump:
-    runs-on: ubuntu-22.04
-
+  renew:
+    runs-on: ubuntu-latest
     env:
-      ACCOUNTS: ${{ secrets.ACCOUNTS }}
-      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-      CHAT_ID: ${{ secrets.CHAT_ID }}
-
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    
     steps:
-    # =======================================================
-    # 替换后的代码块：拉取私有仓库
+      # =======================================================
+      # 替换后的代码块：拉取私有仓库
       - name: 拉取私有仓库
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: andyzhouyang198611/katabump
           token: ${{ secrets.REPO_TOKEN }}
           path: .  # 拉到根目录
-    # =======================================================
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      # =======================================================
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
         with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          sudo apt-get update && sudo apt-get install -y xvfb
+          node-version: '20'
           
-      - name: Get Chromium Version
-        id: get_version
+      - name: Install Dependencies
         run: |
-          CHROME_VERSION=$(chromium-browser --version 2>/dev/null | grep -oE 'Chromium\s[0-9]+' | grep -oE '[0-9]+')
-          if [ -z "$CHROME_VERSION" ]; then
-            CHROME_VERSION=$(google-chrome --version 2>/dev/null | grep -oE 'Chrome\s[0-9]+' | grep -oE '[0-9]+')
-          fi
-          if [ -z "$CHROME_VERSION" ]; then
-            echo "⚠️ 无法自动检测浏览器版本，使用最新稳定版本。"
-          CHROME_VERSION="144"
-          fi
-          echo "Detected Chrome/Chromium Major Version: $CHROME_VERSION"
-          echo "CHROME_VERSION=$CHROME_VERSION" >> $GITHUB_ENV
-
-      - name: Start X Virtual Frame Buffer (Xvfb)
-        # 在后台启动 Xvfb，创建一个虚拟屏幕 :99
-        run: Xvfb :99 -ac &
-
-      - name: Run Script in Stealth Mode (via Xvfb)
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          npm install
+          npx playwright install-deps chrome
+          
+      - name: Run Renew Script
         env:
-          DISPLAY: ':99'
-          HEADLESS: 'false'
-        run: |
-          python renew_katabump.py
+          USERS_JSON: ${{ secrets.USERS_JSON }}
+          HTTP_PROXY: ${{ secrets.HTTP_PROXY }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" node action_renew.js
+
+      - name: Upload Screenshots
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: screenshots
+          path: screenshots/
